@@ -205,7 +205,7 @@ class XyzStateMachine(object):
         self._ensure_state_machine_initialized()
         self.changeState(new_state, data)
 
-        target_state = self.dataListeners[self._currentState].fire(EventType.DATA, data)
+        target_state = self.dataListeners[self._currentState.value].fire(EventType.DATA, data)
 
         if target_state:
             return self.changeState(target_state, data)

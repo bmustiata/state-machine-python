@@ -105,11 +105,11 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.before_leave(XyzState.RUNNING, before_leave)
         stateMachine.after_leave(XyzState.RUNNING, after_leave)
 
-        for i in range(10000):
+        for i in range(100000):
             stateMachine.changeState(XyzState.RUNNING)
             stateMachine.changeState(XyzState.DEFAULT)
 
-        self.assertEqual(100000000, self.expected)
+        self.assertEqual(1000000, self.expected)
 
 
     def testInitialStateTest(self):
@@ -172,7 +172,9 @@ class TestXyzStateMachine(unittest.TestCase):
         self.stateMachine.before_enter(XyzState.RUNNING, before_enter)
 
         self.assertEqual(XyzState.DEFAULT, self.stateMachine.state)
-        self.stateMachine.changeState(XyzState.RUNNING)
+
+        with self.assertRaises(Exception):
+            self.stateMachine.changeState(XyzState.RUNNING)
 
 
     def testDataRouting(self):

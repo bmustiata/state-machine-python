@@ -86,7 +86,7 @@ class XyzStateMachine(object):
         self._transition_listeners = dict()
         self._data_listeners = dict()
         #BEGIN_HANDLEBARS
-        #        self._initialState = initial_state or XyzState.{{states.[0]}}
+        #        self._initial_state = initial_state or XyzState.{{states.[0]}}
         #
         #{{#each states}}
         #        self._transition_listeners['{{this}}'] = EventListener()
@@ -94,7 +94,7 @@ class XyzStateMachine(object):
         #{{#each states}}
         #        self._data_listeners['{{this}}'] = EventListener()
         #{{/each}}
-        self._initalState = initial_state or XyzState.DEFAULT
+        self._initial_state = initial_state or XyzState.DEFAULT
 
         self._transition_listeners['DEFAULT'] = EventListener()
         self._transition_listeners['RUNNING'] = EventListener()
@@ -123,7 +123,7 @@ class XyzStateMachine(object):
     #END_HANDLEBARS
     def _ensure_state_machine_initialized(self):
         if not self._currentState:
-            self._change_state_impl(self._initalState, None)
+            self._change_state_impl(self._initial_state, None)
 
     def changeState(self, targetState, data = None):
         self._ensure_state_machine_initialized()

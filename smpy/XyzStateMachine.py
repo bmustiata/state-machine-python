@@ -82,29 +82,29 @@ register_transition(None, XyzState.RUNNING, XyzState.RUNNING)
 
 
 class XyzStateMachine(object):
-    def __init__(self, initialState=None):
-        self.transitionListeners = dict()
-        self.dataListeners = dict()
+    def __init__(self, initial_state=None):
+        self._transition_listeners = dict()
+        self._data_listeners = dict()
         #BEGIN_HANDLEBARS
-        #        self.initialState = initialState or XyzState.{{states.[0]}}
+        #        self._initialState = initial_state or XyzState.{{states.[0]}}
         #
         #{{#each states}}
-        #        self.transitionListeners['{{this}}'] = EventListener()
+        #        self._transition_listeners['{{this}}'] = EventListener()
         #{{/each}}
         #{{#each states}}
-        #        self.dataListeners['{{this}}'] = EventListener()
+        #        self._data_listeners['{{this}}'] = EventListener()
         #{{/each}}
-        self._initalState = initialState or XyzState.DEFAULT
+        self._initalState = initial_state or XyzState.DEFAULT
 
-        self.transitionListeners['DEFAULT'] = EventListener()
-        self.transitionListeners['RUNNING'] = EventListener()
-        self.transitionListeners['STOPPED'] = EventListener()
-        self.dataListeners['DEFAULT'] = EventListener()
-        self.dataListeners['RUNNING'] = EventListener()
-        self.dataListeners['STOPPED'] = EventListener()
+        self._transition_listeners['DEFAULT'] = EventListener()
+        self._transition_listeners['RUNNING'] = EventListener()
+        self._transition_listeners['STOPPED'] = EventListener()
+        self._data_listeners['DEFAULT'] = EventListener()
+        self._data_listeners['RUNNING'] = EventListener()
+        self._data_listeners['STOPPED'] = EventListener()
         #END_HANDLEBARS
         self._currentState = None
-        self.currentChangeStateEvent = None
+        self._current_change_state_event = None
 
     @property
     def state(self):
@@ -140,12 +140,12 @@ class XyzStateMachine(object):
 
         state_change_event = XyzStateChangeEvent(self._currentState, targetState, data)
 
-        if self.currentChangeStateEvent:
+        if self._current_change_state_event:
             raise XyzStateException(
                 "The XyzStateMachine is already in a changeState (%s -> %s). "
                 "Transitioning the state machine (%s -> %s) in `before` events is not supported." % (
-                    self.currentChangeStateEvent.previousState.value,
-                    self.currentChangeStateEvent.targetState.value,
+                    self._current_change_state_event.previousState.value,
+                    self._current_change_state_event.targetState.value,
                     self._currentState.value,
                     targetState.value
                 ))
@@ -154,23 +154,23 @@ class XyzStateMachine(object):
             print("No transition exists between %s -> %s." % (self._currentState.value, targetState.value))
             return self._currentState
 
-        self.currentChangeStateEvent = state_change_event
+        self._current_change_state_event = state_change_event
 
         if state_change_event.previousState:
-            self.transitionListeners[state_change_event.previousState.value].fire(EventType.BEFORE_LEAVE, state_change_event)
+            self._transition_listeners[state_change_event.previousState.value].fire(EventType.BEFORE_LEAVE, state_change_event)
 
-        self.transitionListeners[state_change_event.targetState.value].fire(EventType.BEFORE_ENTER, state_change_event)
+        self._transition_listeners[state_change_event.targetState.value].fire(EventType.BEFORE_ENTER, state_change_event)
 
         if state_change_event.cancelled:
             return self._currentState
 
         self._currentState = targetState
-        self.currentChangeStateEvent = None
+        self._current_change_state_event = None
 
         if state_change_event.previousState:
-            self.transitionListeners[state_change_event.previousState.value].fire(EventType.AFTER_LEAVE, state_change_event)
+            self._transition_listeners[state_change_event.previousState.value].fire(EventType.AFTER_LEAVE, state_change_event)
 
-        self.transitionListeners[state_change_event.targetState.value].fire(EventType.AFTER_ENTER, state_change_event)
+        self._transition_listeners[state_change_event.targetState.value].fire(EventType.AFTER_ENTER, state_change_event)
 
         return self._currentState
 
@@ -190,19 +190,19 @@ class XyzStateMachine(object):
         return self.changeState(targetState, data)
 
     def before_enter(self, state, callback):
-        return self.transitionListeners[state.value].add_listener(EventType.BEFORE_ENTER, callback)
+        return self._transition_listeners[state.value].add_listener(EventType.BEFORE_ENTER, callback)
 
     def after_enter(self, state, callback):
-        return self.transitionListeners[state.value].add_listener(EventType.AFTER_ENTER, callback)
+        return self._transition_listeners[state.value].add_listener(EventType.AFTER_ENTER, callback)
 
     def before_leave(self, state, callback):
-        return self.transitionListeners[state.value].add_listener(EventType.BEFORE_LEAVE, callback)
+        return self._transition_listeners[state.value].add_listener(EventType.BEFORE_LEAVE, callback)
 
     def after_leave(self, state, callback):
-        return self.transitionListeners[state.value].add_listener(EventType.AFTER_LEAVE, callback)
+        return self._transition_listeners[state.value].add_listener(EventType.AFTER_LEAVE, callback)
 
     def on_data(self, state, callback):
-        return self.dataListeners[state.value].add_listener(EventType.DATA, callback)
+        return self._data_listeners[state.value].add_listener(EventType.DATA, callback)
 
     def forward_data(self, new_state, data):
         """
@@ -227,7 +227,7 @@ class XyzStateMachine(object):
         self._ensure_state_machine_initialized()
         self.changeState(new_state, data)
 
-        target_state = self.dataListeners[self._currentState.value].fire(EventType.DATA, data)
+        target_state = self._data_listeners[self._currentState.value].fire(EventType.DATA, data)
 
         if target_state:
             return self.changeState(target_state, data)
@@ -242,7 +242,7 @@ class XyzStateMachine(object):
         @param data
         """
         self._ensure_state_machine_initialized()
-        target_state = self.dataListeners[self._currentState.value].fire(EventType.DATA, data)
+        target_state = self._data_listeners[self._currentState.value].fire(EventType.DATA, data)
 
         if target_state:
             return self.changeState(target_state, data)

@@ -1,0 +1,19 @@
+name: Xyz
+package: smpy
+states:
+  - DEFAULT
+  - RUNNING
+  - STOPPED
+transitions:
+  DEFAULT:
+    run: RUNNING
+    stop: STOPPED
+  RUNNING:
+    pause: DEFAULT
+    stop: STOPPED
+    run: RUNNING
+properties:
+  name: String
+  active:
+    type: boolean
+    default: true

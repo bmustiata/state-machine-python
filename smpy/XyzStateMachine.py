@@ -26,25 +26,52 @@ STATE_INDEX = {
 
 
 class XyzStateChangeEvent(object):
+    """
+    Event that gets on all the before/after callbacks that are
+    triggered on state changes.
+    """
+
     def __init__(self, previous_state, target_state, data):
+        """
+        Create a new event.
+
+        :param XyzState previous_state: The state that the state machine is transitioning from.
+        :param XyzState target_state: The state that the state machine is transitioning to.
+        :param object data: Optional data that is passed in the event.
+        """
         self._previousState = previous_state
         self._targetState = target_state
         self.data = data
         self._cancelled = False
 
     def cancel(self):
+        """
+        Cancel the current transition.
+        """
         self._cancelled = True
 
     @property
     def cancelled(self):
+        """
+        Is the current transition cancelled.
+        :return:
+        """
         return self._cancelled
 
     @property
-    def previousState(self):
+    def previous_state(self):
+        """
+        The state from which we're transitioning.
+        :return:
+        """
         return self._previousState
 
     @property
-    def targetState(self):
+    def target_state(self):
+        """
+        Thestate towards we're transitioning.
+        :return:
+        """
         return self._targetState
 
 
@@ -56,18 +83,18 @@ transition_set = dict()
 link_map = dict()
 
 
-def register_transition(name, fromState, toState):
-    transition_set[STATE_INDEX[fromState.value] << 16 | STATE_INDEX[toState.value]] = True
+def register_transition(name, from_state, to_state):
+    transition_set[STATE_INDEX[from_state.value] << 16 | STATE_INDEX[to_state.value]] = True
 
     if not name:
         return
 
-    fromMap = link_map.get(fromState.value)
+    fromMap = link_map.get(from_state.value)
 
     if not fromMap:
-        fromMap = link_map[fromState.value] = dict()
+        fromMap = link_map[from_state.value] = dict()
 
-    fromMap[name] = toState
+    fromMap[name] = to_state
 
 #BEGIN_HANDLEBARS
 #{{#each transitions}}
@@ -144,8 +171,8 @@ class XyzStateMachine(object):
             raise XyzStateException(
                 "The XyzStateMachine is already in a changeState (%s -> %s). "
                 "Transitioning the state machine (%s -> %s) in `before` events is not supported." % (
-                    self._current_change_state_event.previousState.value,
-                    self._current_change_state_event.targetState.value,
+                    self._current_change_state_event.previous_state.value,
+                    self._current_change_state_event.target_state.value,
                     self._currentState.value,
                     targetState.value
                 ))
@@ -156,10 +183,10 @@ class XyzStateMachine(object):
 
         self._current_change_state_event = state_change_event
 
-        if state_change_event.previousState:
-            self._transition_listeners[state_change_event.previousState.value].fire(EventType.BEFORE_LEAVE, state_change_event)
+        if state_change_event.previous_state:
+            self._transition_listeners[state_change_event.previous_state.value].fire(EventType.BEFORE_LEAVE, state_change_event)
 
-        self._transition_listeners[state_change_event.targetState.value].fire(EventType.BEFORE_ENTER, state_change_event)
+        self._transition_listeners[state_change_event.target_state.value].fire(EventType.BEFORE_ENTER, state_change_event)
 
         if state_change_event.cancelled:
             return self._currentState
@@ -167,22 +194,29 @@ class XyzStateMachine(object):
         self._currentState = targetState
         self._current_change_state_event = None
 
-        if state_change_event.previousState:
-            self._transition_listeners[state_change_event.previousState.value].fire(EventType.AFTER_LEAVE, state_change_event)
+        if state_change_event.previous_state:
+            self._transition_listeners[state_change_event.previous_state.value].fire(EventType.AFTER_LEAVE, state_change_event)
 
-        self._transition_listeners[state_change_event.targetState.value].fire(EventType.AFTER_ENTER, state_change_event)
+        self._transition_listeners[state_change_event.target_state.value].fire(EventType.AFTER_ENTER, state_change_event)
 
         return self._currentState
 
-    def transition(self, linkName, data = None):
+    def transition(self, link_name, data=None):
+        """
+        Transition into another state following a named transition.
+
+        :param str link_name:
+        :param object data:
+        :return: XyzState
+        """
         self._ensure_state_machine_initialized()
 
-        sourceState = link_map.get(self._currentState.value)
+        source_state = link_map.get(self._currentState.value)
 
-        if not sourceState:
+        if not source_state:
             return None
 
-        targetState = sourceState[linkName]
+        targetState = source_state[link_name]
 
         if not targetState:
             return None
@@ -190,18 +224,57 @@ class XyzStateMachine(object):
         return self.changeState(targetState, data)
 
     def before_enter(self, state, callback):
+        """
+        Add a transition listener that will fire before entering a new state.
+        The transition can still be cancelled at this stage via `ev.cancel()`
+        in the callback.
+
+        :param XyzState state:
+        :param Function callback:
+        :return:
+        """
         return self._transition_listeners[state.value].add_listener(EventType.BEFORE_ENTER, callback)
 
     def after_enter(self, state, callback):
+        """
+        Add a transition listener that will fire after the new state is entered.
+        The transition can not be cancelled at this stage.
+        :param XyzState state:
+        :param callback:
+        :return:
+        """
         return self._transition_listeners[state.value].add_listener(EventType.AFTER_ENTER, callback)
 
     def before_leave(self, state, callback):
+        """
+        Add a transition listener that will fire before leaving a state.
+        The transition can be cancelled at this stage via `ev.cancel()`.
+
+        :param XyzState state:
+        :param callback:
+        :return:
+        """
         return self._transition_listeners[state.value].add_listener(EventType.BEFORE_LEAVE, callback)
 
     def after_leave(self, state, callback):
+        """
+        Add a transition listener that will fire after leaving a state.
+        The transition can not be cancelled at this stage.
+
+        :param XyzState state:
+        :param callback:
+        :return:
+        """
         return self._transition_listeners[state.value].add_listener(EventType.AFTER_LEAVE, callback)
 
     def on_data(self, state, callback):
+        """
+        Add a data listener that will be called when data is being pushed for that transition.
+
+        :param XyzState state:
+        :param callback:
+        :return:
+        """
         return self._data_listeners[state.value].add_listener(EventType.DATA, callback)
 
     def forward_data(self, new_state, data):

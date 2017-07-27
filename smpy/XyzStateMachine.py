@@ -3,10 +3,10 @@ import uuid
 
 
 class XyzState(Enum):
-    #BEGIN_HANDLEBARS
-    #{{#each states}}
-    #    {{this}} = '{{this}}'
-    #{{/each}}
+#BEGIN_HANDLEBARS
+#{{#each states}}
+#    {{this}} = '{{this}}'
+#{{/each}}
     DEFAULT = 'DEFAULT'
     RUNNING = 'RUNNING'
     STOPPED = 'STOPPED'
@@ -14,9 +14,14 @@ class XyzState(Enum):
 
 
 STATE_INDEX = {
+#BEGIN_HANDLEBARS
+#{{#each states}}
+#    '{{this}}': {{@index}},
+#{{/each}}
     'DEFAULT': 0,
     'RUNNING': 1,
     'STOPPED': 2,
+#END_HANDLEBARS
 }
 
 
@@ -64,13 +69,17 @@ def register_transition(name, fromState, toState):
 
     fromMap[name] = toState
 
-# BEGIN_TRANSITIONS: register_transition("TRANSITION_NAME", XyzState.FROM_STATE, XyzState.TO_STATE);
-register_transition("run", XyzState.DEFAULT, XyzState.RUNNING);
-register_transition(None, XyzState.DEFAULT, XyzState.STOPPED);
-register_transition(None, XyzState.RUNNING, XyzState.DEFAULT);
-register_transition(None, XyzState.RUNNING, XyzState.STOPPED);
-register_transition(None, XyzState.RUNNING, XyzState.RUNNING);
-# END_TRANSITIONS
+#BEGIN_HANDLEBARS
+#{{#each transitions}}
+#register_transition('{{this.name}}', XyzState.{{this.startState}}, XyzState.{{this.endState}})
+#{{/each}}
+register_transition("run", XyzState.DEFAULT, XyzState.RUNNING)
+register_transition(None, XyzState.DEFAULT, XyzState.STOPPED)
+register_transition(None, XyzState.RUNNING, XyzState.DEFAULT)
+register_transition(None, XyzState.RUNNING, XyzState.STOPPED)
+register_transition(None, XyzState.RUNNING, XyzState.RUNNING)
+#END_HANDLEBARS
+
 
 class XyzStateMachine(object):
     def __init__(self, initialState=None):
@@ -78,9 +87,14 @@ class XyzStateMachine(object):
         self.dataListeners = dict()
         #BEGIN_HANDLEBARS
         #        self.initialState = initialState || XyzState.{{states.[0]}}
+        #
+        #{{#each states}}
+        #        self.transitionListeners['{{this}}'] = EventListener()
+        #{{/each}}
+        #{{#each states}}
+        #        self.dataListeners['{{this}}'] = EventListener()
+        #{{/each}}
         self._initalState = initialState or XyzState.DEFAULT
-        #END_HANDLEBARS
-        self._currentState = None
 
         self.transitionListeners['DEFAULT'] = EventListener()
         self.transitionListeners['RUNNING'] = EventListener()
@@ -88,7 +102,8 @@ class XyzStateMachine(object):
         self.dataListeners['DEFAULT'] = EventListener()
         self.dataListeners['RUNNING'] = EventListener()
         self.dataListeners['STOPPED'] = EventListener()
-
+        #END_HANDLEBARS
+        self._currentState = None
         self.currentChangeStateEvent = None
 
     @property
@@ -96,9 +111,16 @@ class XyzStateMachine(object):
         self._ensure_state_machine_initialized()
         return self._currentState
 
-    def run(self, data = None):
+    #BEGIN_HANDLEBARS
+    #{{#each transitionSet}}
+    #    def {{this}}(self, data=None):
+    #        return self.transition("{{this}}", data)
+    #
+    #{{/each}}
+    def run(self, data=None):
         return self.transition("run", data)
 
+    #END_HANDLEBARS
     def _ensure_state_machine_initialized(self):
         if not self._currentState:
             self._change_state_impl(self._initalState, None)

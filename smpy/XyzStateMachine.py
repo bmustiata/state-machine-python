@@ -86,7 +86,7 @@ class XyzStateMachine(object):
         self.transitionListeners = dict()
         self.dataListeners = dict()
         #BEGIN_HANDLEBARS
-        #        self.initialState = initialState || XyzState.{{states.[0]}}
+        #        self.initialState = initialState or XyzState.{{states.[0]}}
         #
         #{{#each states}}
         #        self.transitionListeners['{{this}}'] = EventListener()

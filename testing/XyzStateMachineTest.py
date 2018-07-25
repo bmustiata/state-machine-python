@@ -2,6 +2,7 @@ import unittest
 
 from smpy.XyzStateMachine import XyzStateMachine, XyzState
 
+
 class TestXyzStateMachine(unittest.TestCase):
     def setup(self):
         self.expected = 0
@@ -240,6 +241,7 @@ class TestXyzStateMachine(unittest.TestCase):
         self.assertEqual(XyzState.STOPPED, state)
         self.assertEqual(6, self.expected)
         self.assertEqual(XyzState.STOPPED, self.stateMachine.state)
+
 
 if __name__ == '__main__':
     unittest.main()

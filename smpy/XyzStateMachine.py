@@ -6,7 +6,7 @@ import uuid
 class XyzState(Enum):
     # BEGIN_HANDLEBARS
     # {{#each states}}
-    #     {{this}} = '{{this}}'
+    # {{this}} = '{{this}}'
     # {{/each}}
     DEFAULT = 'DEFAULT'
     RUNNING = 'RUNNING'
@@ -17,7 +17,7 @@ class XyzState(Enum):
 STATE_INDEX = {
     # BEGIN_HANDLEBARS
     # {{#each states}}
-    #     '{{this}}': {{@index}},
+    # '{{this}}': {{@index}},
     # {{/each}}
     'DEFAULT': 0,
     'RUNNING': 1,

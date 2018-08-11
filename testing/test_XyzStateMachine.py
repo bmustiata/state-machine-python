@@ -8,7 +8,7 @@ class TestXyzStateMachine(unittest.TestCase):
         self.expected = 0
         self.stateMachine = None
 
-    def testStateMachine(self):
+    def test_state_machine(self):
         stateMachine = XyzStateMachine()
         self.expected = 0
 
@@ -39,8 +39,7 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.changeState(XyzState.STOPPED)
         self.assertEqual(10, self.expected)
 
-
-    def testFailedListenerDoesntFailStateMachine(self):
+    def test_failed_listener_doesnt_fail_state_machine(self):
         stateMachine = XyzStateMachine()
 
         self.expected = 0
@@ -58,8 +57,7 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.changeState(XyzState.RUNNING)
         self.assertEqual(1, self.expected)
 
-
-    def testCancellingEventsStopsTransitions(self):
+    def test_cancelling_events_stops_transitions(self):
         stateMachine = XyzStateMachine()
         self.expected = 0
 
@@ -68,7 +66,6 @@ class TestXyzStateMachine(unittest.TestCase):
             self.expected += 1
 
             ev.cancel()
-
 
         def after_enter(ev):
             raise Exception("Should not enter, since the event was cancelled")
@@ -82,8 +79,7 @@ class TestXyzStateMachine(unittest.TestCase):
         self.assertEqual(XyzState.DEFAULT, stateMachine.state)
         self.assertEqual(1, self.expected)
 
-
-    def testPerformance(self):
+    def test_performance(self):
         stateMachine = XyzStateMachine()
         self.expected = 0
 
@@ -102,7 +98,6 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.before_enter(XyzState.RUNNING, before_enter)
         stateMachine.after_enter(XyzState.RUNNING, after_enter)
 
-
         stateMachine.before_leave(XyzState.RUNNING, before_leave)
         stateMachine.after_leave(XyzState.RUNNING, after_leave)
 
@@ -112,8 +107,7 @@ class TestXyzStateMachine(unittest.TestCase):
 
         self.assertEqual(1000000, self.expected)
 
-
-    def testInitialStateTest(self):
+    def test_initial_state_test(self):
         stateMachine = XyzStateMachine(XyzState.DEFAULT)
         self.expected = 0
 
@@ -130,8 +124,7 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.changeState(XyzState.RUNNING)
         self.assertEqual(3, self.expected)
 
-
-    def testDataGetsPassedIntoTheEvent(self):
+    def test_data_gets_passed_into_the_event(self):
         stateMachine = XyzStateMachine(XyzState.DEFAULT)
         self.expected = 0
 
@@ -144,8 +137,7 @@ class TestXyzStateMachine(unittest.TestCase):
         stateMachine.changeState(XyzState.RUNNING, 3)
         self.assertEqual(4, self.expected)
 
-
-    def testChangingTheStateInAnAfterListener(self):
+    def test_changing_the_state_in_an_after_listener(self):
         self.stateMachine = XyzStateMachine(XyzState.DEFAULT)
         self.expected = 0
 
@@ -163,8 +155,7 @@ class TestXyzStateMachine(unittest.TestCase):
         self.assertEqual(XyzState.STOPPED, self.stateMachine.state)
         self.assertEqual(1, self.expected)
 
-
-    def testChangingTheStateInAnBeforeListenerIsNotAllowed(self):
+    def test_changing_the_state_in_an_before_listener_is_not_allowed(self):
         self.stateMachine = XyzStateMachine(XyzState.DEFAULT)
 
         def before_enter(ev):
@@ -177,49 +168,43 @@ class TestXyzStateMachine(unittest.TestCase):
         with self.assertRaises(Exception):
             self.stateMachine.changeState(XyzState.RUNNING)
 
-
-    def testDataRouting(self):
+    def test_data_routing(self):
         stateMachine = XyzStateMachine(XyzState.DEFAULT)
 
         self.data = ""
 
-        def on_default_data(name):
+        def on_default_data(name: str) -> None:
             self.data += "DEFAULT:" + name + ","
 
-        def on_running_data(name):
+        def on_running_data(name: str) -> XyzState:
             self.data += "RUNNING:" + name + ","
-            return XyzState.STOPPED
-
+                return XyzState.STOPPED
 
         stateMachine.on_data(XyzState.DEFAULT, on_default_data)
         stateMachine.on_data(XyzState.RUNNING, on_running_data)
 
         stateMachine.send_data("default")
         stateMachine.send_data("default")
-        stateMachine.changeState(XyzState.RUNNING)
         stateMachine.run()
         stateMachine.send_data("running")
         stateMachine.send_data("running")
 
-        self.assertEqual(XyzState.STOPPED, stateMachine.state)
         self.assertEqual("DEFAULT:default,DEFAULT:default,RUNNING:running,", self.data)
+        self.assertEqual(XyzState.STOPPED, stateMachine.state)
 
-
-    def testInvalidTransitionShouldNotWork(self):
+    def test_invalid_transitions_should_not_work(self):
         stateMachine = XyzStateMachine(XyzState.STOPPED)
         newState = stateMachine.changeState(XyzState.RUNNING)
 
         self.assertEqual(XyzState.STOPPED, newState)
 
-
-    def testInitializationOnTransitions(self):
+    def test_initializations_on_transitions(self):
         stateMachine = XyzStateMachine(XyzState.DEFAULT)
         stateMachine.transition("run")
 
         self.assertEqual(XyzState.RUNNING, stateMachine.state)
 
-
-    def testResendingData(self):
+    def test_resending_data(self):
         self.stateMachine = XyzStateMachine()
         self.expected = 0
 

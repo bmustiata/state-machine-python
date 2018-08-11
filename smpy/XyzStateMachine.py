@@ -32,7 +32,10 @@ class XyzStateChangeEvent(object):
     triggered on state changes.
     """
 
-    def __init__(self, previous_state: XyzState, target_state: XyzState, data: Any) -> None:
+    def __init__(self,
+                 previous_state: Optional[XyzState],
+                 target_state: XyzState,
+                 data: Any) -> None:
         """
         Create a new event.
 
@@ -40,8 +43,8 @@ class XyzStateChangeEvent(object):
         :param XyzState target_state: The state that the state machine is transitioning to.
         :param object data: Optional data that is passed in the event.
         """
-        self._previousState = previous_state
-        self._targetState = target_state
+        self._previous_state = previous_state
+        self._target_state = target_state
         self.data = data
         self._cancelled = False
 
@@ -65,7 +68,7 @@ class XyzStateChangeEvent(object):
         The state from which we're transitioning.
         :return:
         """
-        return self._previousState
+        return self._previous_state
 
     @property
     def target_state(self) -> XyzState:
@@ -73,7 +76,7 @@ class XyzStateChangeEvent(object):
         Thestate towards we're transitioning.
         :return:
         """
-        return self._targetState
+        return self._target_state
 
 
 class XyzStateException(Exception):
@@ -85,7 +88,7 @@ link_map: Dict[XyzState, Dict[str, XyzState]] = dict()
 
 
 def register_transition(name: str, from_state: XyzState, to_state: XyzState) -> None:
-    transition_set[STATE_INDEX[from_state.value] << 16 | STATE_INDEX[to_state.value]] = True
+    transition_set[STATE_INDEX[from_state.value] << 14 | STATE_INDEX[to_state.value]] = True
 
     if not name:
         return
@@ -135,8 +138,8 @@ class XyzStateMachine(object):
         self._data_listeners['RUNNING'] = EventListener()
         self._data_listeners['STOPPED'] = EventListener()
         # END_HANDLEBARS
-        self._currentState = None
-        self._current_change_state_event = None
+        self._currentState = None  # type: Optional[XyzState]
+        self._current_change_state_event = None  # type: Optional[XyzStateChangeEvent]
 
     @property
     def state(self) -> XyzState:
@@ -162,8 +165,6 @@ class XyzStateMachine(object):
         return self._change_state_impl(targetState, data)
 
     def _change_state_impl(self, targetState: XyzState, data: Any=None) -> XyzState:
-        assert self._currentState
-
         if not targetState:
             raise Exception("No target state specified. Can not change the state.")
 
@@ -174,6 +175,11 @@ class XyzStateMachine(object):
 
         state_change_event: XyzStateChangeEvent = XyzStateChangeEvent(self._currentState, targetState, data)
 
+        if self._currentState and \
+                not transition_set.get(STATE_INDEX[self._currentState.value] << 14 | STATE_INDEX[targetState.value]):
+            print("No transition exists between %s -> %s." % (self._currentState.value, targetState.value))
+            return self._currentState
+
         if self._current_change_state_event:
             raise XyzStateException(
                 "The XyzStateMachine is already in a changeState (%s -> %s). "
@@ -183,11 +189,6 @@ class XyzStateMachine(object):
                     self._currentState.value,
                     targetState.value
                 ))
-
-        state_bit = STATE_INDEX[self._currentState.value] << 16 | STATE_INDEX[targetState.value]
-        if self._currentState and not transition_set.get(state_bit):
-            print("No transition exists between %s -> %s." % (self._currentState.value, targetState.value))
-            return self._currentState
 
         self._current_change_state_event = state_change_event
 
@@ -310,7 +311,7 @@ class XyzStateMachine(object):
 
         return None
 
-    def send_state_data(self, new_state, data) -> XyzState:
+    def send_state_data(self, new_state: XyzState, data: Any) -> XyzState:
         """
         Sends the data into the state machine, to be processed by listeners
         registered with `onData`.
@@ -330,7 +331,9 @@ class XyzStateMachine(object):
 
         return self._currentState
 
-    def send_data(self, state: XyzState, data: Any) -> XyzState:
+    def send_data(self,
+                  data: Any=None,
+                  state: Optional[XyzState]=None) -> XyzState:
         """
         Transitions first the state machine into the new state, then it
         will send the data into the state machine.
@@ -341,7 +344,11 @@ class XyzStateMachine(object):
 
         assert self._currentState
 
-        target_state = self._data_listeners[self._currentState.value].fire(EventType.DATA, data)
+        if state:
+            self.changeState(state)
+
+        target_state = self._data_listeners[self._currentState.value]\
+            .fire(EventType.DATA, data)
 
         if target_state:
             return self.changeState(target_state, data)

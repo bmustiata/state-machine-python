@@ -1,12 +1,21 @@
 import unittest
 
-from smpy.XyzStateMachine import XyzStateMachine, XyzState
+from smpy.XyzStateMachine import XyzStateMachine, XyzState, XyzStateChangeEvent
 
 
 class TestXyzStateMachine(unittest.TestCase):
     def setup(self):
         self.expected = 0
         self.stateMachine = None
+
+    def test_initial_change_event(self):
+        stateMachine = XyzStateMachine()
+
+        def after_enter(ev: XyzStateChangeEvent):
+            self.assertTrue(ev.previous_state is None)
+
+        stateMachine.after_enter(XyzState.DEFAULT, after_enter)
+        stateMachine.changeState(XyzState.RUNNING)
 
     def test_state_machine(self):
         stateMachine = XyzStateMachine()
@@ -178,7 +187,7 @@ class TestXyzStateMachine(unittest.TestCase):
 
         def on_running_data(name: str) -> XyzState:
             self.data += "RUNNING:" + name + ","
-                return XyzState.STOPPED
+            return XyzState.STOPPED
 
         stateMachine.on_data(XyzState.DEFAULT, on_default_data)
         stateMachine.on_data(XyzState.RUNNING, on_running_data)

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional, Callable, Union
 import uuid
 
 
@@ -113,7 +113,10 @@ register_transition(None, XyzState.RUNNING, XyzState.RUNNING)
 # END_HANDLEBARS
 
 
-ChangeStateEventListener = Callable[[XyzStateChangeEvent], Optional[XyzState]]
+ChangeStateEventListener = Union[
+    Callable[[], Optional[XyzState]],
+    Callable[[XyzStateChangeEvent], Optional[XyzState]]
+]
 
 
 class XyzStateMachine(object):
@@ -258,7 +261,7 @@ class XyzStateMachine(object):
 
         return self.changeState(targetState, data)
 
-    def before_enter(self, state: XyzState, callback: Callable[[XyzStateChangeEvent], Optional[XyzState]]):
+    def before_enter(self, state: XyzState, callback: ChangeStateEventListener):
         """
         Add a transition listener that will fire before entering a new state.
         The transition can still be cancelled at this stage via `ev.cancel()`
@@ -270,7 +273,7 @@ class XyzStateMachine(object):
         """
         return self._transition_listeners[state.value].add_listener(EventType.BEFORE_ENTER, callback)
 
-    def after_enter(self, state: XyzState, callback: Callable[[XyzStateChangeEvent], Optional[XyzState]]):
+    def after_enter(self, state: XyzState, callback: ChangeStateEventListener):
         """
         Add a transition listener that will fire after the new state is entered.
         The transition can not be cancelled at this stage.
@@ -280,7 +283,7 @@ class XyzStateMachine(object):
         """
         return self._transition_listeners[state.value].add_listener(EventType.AFTER_ENTER, callback)
 
-    def before_leave(self, state: XyzState, callback: Callable[[XyzStateChangeEvent], Optional[XyzState]]):
+    def before_leave(self, state: XyzState, callback: ChangeStateEventListener):
         """
         Add a transition listener that will fire before leaving a state.
         The transition can be cancelled at this stage via `ev.cancel()`.
@@ -291,7 +294,7 @@ class XyzStateMachine(object):
         """
         return self._transition_listeners[state.value].add_listener(EventType.BEFORE_LEAVE, callback)
 
-    def after_leave(self, state, callback):
+    def after_leave(self, state: XyzState, callback: ChangeStateEventListener):
         """
         Add a transition listener that will fire after leaving a state.
         The transition can not be cancelled at this stage.
